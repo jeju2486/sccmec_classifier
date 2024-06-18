@@ -39,7 +39,7 @@ for reference_genome in "$reference_dir"/*.fasta; do
         echo "Processing $reference_name"
 
     # Run Minimap2 and save the SAM file in the SAM directory
-    minimap2 -a "$reference_genome" "$query_sequence" > "$output_dir/sam/${reference_name}.sam"
+    minimap2 -x map-ont --secondary=no -a "$reference_genome" "$query_sequence" > "$output_dir/sam/${reference_name}.sam"
 
     # Convert BAM file into a BED file and save it in the BED directory
     bedtools bamtobed -i "$output_dir/sam/${reference_name}.sam" > "$output_dir/bed/${reference_name}.bed"
@@ -56,6 +56,8 @@ module purge
 module load Anaconda3/2023.09-0
 source activate $DATA/python3_12_2
 
-python distinguish_sccmec_type.py
-python combining_table.py
+python distinguish_mec_type.py
+python extract_ccr.py
 
+#calculate the sccmec type corresponding ccr and mec type
+python combining_files.py
