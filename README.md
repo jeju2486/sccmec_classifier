@@ -47,8 +47,7 @@ According to the [paper](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8772726/),
 ## Step1. preparing gene database(DB)
 Here the genes are collected from [paper, Table2](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8772726/) and saved as multi-fasta format in gene_db.fasta file.
 
-| sccmec type   | Representative Strain |
-|               | (Genebank Accession)    |    
+| sccmec type   | Representative Strain <br> (Genebank Accession) |
 | ------------- |:---------------------:|
 |I              |[NCTC10442(AB033763)](https://www.ncbi.nlm.nih.gov/nuccore/AB033763)  |
 |II             |[N315 (D86934)](https://www.ncbi.nlm.nih.gov/nuccore/D86934)  |
