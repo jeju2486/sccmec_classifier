@@ -2,17 +2,19 @@
 
 # Function to display usage message
 usage() {
-  echo "Usage: $0 -q <query_sequence> -r <reference_dir> -o <output_dir>"
+  echo "Usage: $0 -q <query_sequence> -r <reference_dir> -o <output_dir> [-s TRUE|FALSE]"
   exit 1
 }
 
 # Parse command-line arguments
-while getopts q:r:o: flag
+save_temp="TRUE"
+while getopts q:r:o:s: flag
 do
     case "${flag}" in
         q) query_sequence=${OPTARG};;
         r) reference_dir=${OPTARG};;
         o) output_dir=${OPTARG};;
+        s) save_temp=${OPTARG};;
         \?) usage;;
     esac
 done
@@ -55,6 +57,32 @@ extract_and_realign_soft_clipped() {
   filter_best_match "$output_dir/temp/${reference_name}_soft_clipped${output_suffix}.sam" "$output_dir/temp/${reference_name}_filtered_soft_clipped${output_suffix}.sam"
 }
 
+# Function to extract genes that start at 1 or end at contig length and save to a new SAM file
+extract_genes_for_second_run() {
+  local sam_file=$1
+  local genome_size_file=$2
+  local output_sam_file=$3
+
+  awk -v genome_size_file="$genome_size_file" '
+    BEGIN {
+      while ((getline < genome_size_file) > 0) {
+        contig_lengths[$1] = $2;
+      }
+    }
+    /^@/ { print $0 > "'"$output_sam_file"'"; next }
+    !/^@/ {
+      contig = $3;
+      start = $4;
+      match($6, /([0-9]+)M/, arr);
+      matched_length = arr[1];
+      end = start + matched_length - 1;
+      if (start <= 100 || end >= contig_lengths[contig]-100) {
+        print $0 > "'"$output_sam_file"'";
+      }
+    }
+  ' "$sam_file"
+}
+
 # Function to process the alignment and soft clipping
 process_alignment() {
   local query_sequence=$1
@@ -69,16 +97,19 @@ process_alignment() {
   # Filter the best matching result for each gene
   filter_best_match "$output_dir/sam/${reference_name}_minimap2${output_suffix}.sam" "$output_dir/sam/${reference_name}_filtered_minimap2${output_suffix}.sam"
 
-  # Find and realign soft-clipped regions
-  extract_and_realign_soft_clipped "$output_dir/sam/${reference_name}_filtered_minimap2${output_suffix}.sam" "$reference_genome" "$output_dir" "$reference_name" "$output_suffix"
+  # Extract genes for second run
+  extract_genes_for_second_run "$output_dir/sam/${reference_name}_filtered_minimap2${output_suffix}.sam" "$output_dir/bed/${reference_name}_genome_size.txt" "$output_dir/temp/${reference_name}_for_second_run${output_suffix}.sam"
+  
+  if [ -s "$output_dir/temp/${reference_name}_for_second_run${output_suffix}.sam" ]; then
+    # Find and realign soft-clipped regions
+    extract_and_realign_soft_clipped "$output_dir/temp/${reference_name}_for_second_run${output_suffix}.sam" "$reference_genome" "$output_dir" "$reference_name" "$output_suffix"
 
-  # Convert SAM file into a BED file and save it in the BED directory
-  bedtools bamtobed -i "$output_dir/sam/${reference_name}_filtered_minimap2${output_suffix}.sam" > "$output_dir/bed/${reference_name}_minimap2${output_suffix}.bed"
-
-  # Create genome length information file and save it in the BED directory
-  cat "$reference_genome" | awk '/^>/{if (seqname) print seqname "\t" length(seq); seqname=$1; seq=""; next} {seq = seq $0} END {print seqname "\t" length(seq)}' | sed 's/>//; s/ / /' > "$output_dir/bed/${reference_name}_genome_size${output_suffix}.txt"
+    # Convert SAM file into a BED file and save it in the BED directory
+    bedtools bamtobed -i "$output_dir/sam/${reference_name}_filtered_minimap2${output_suffix}.sam" > "$output_dir/bed/${reference_name}_minimap2${output_suffix}.bed"
+  else
+    echo "No alignments met criteria for second run"
+  fi
 }
-
 
 # Iterate through files in the reference directory
 for reference_genome in "$reference_dir"/*.fasta; do
@@ -87,22 +118,31 @@ for reference_genome in "$reference_dir"/*.fasta; do
     echo "File $reference_name already exists. Skipping."
   else
     echo "Processing $reference_name"
-
+    
+    # Create genome length information file and save it in the BED directory
+    cat "$reference_genome" | awk '/^>/{if (seqname) print seqname "\t" length(seq); seqname=$1; seq=""; next} {seq = seq $0} END {print seqname "\t" length(seq)}' | sed 's/>//; s/ / /' > "$output_dir/bed/${reference_name}_genome_size.txt"
+    
     # First run of the process
     process_alignment "$query_sequence" "$reference_genome" "$output_dir" "$reference_name" ""
 
     # Second run of the process using soft-clipped sequences from the first run
-    process_alignment "$output_dir/temp/${reference_name}_soft_clipped.fasta" "$reference_genome" "$output_dir" "$reference_name" "_second"
+    if [ -e "$output_dir/temp/${reference_name}_soft_clipped.fasta" ]; then
+      process_alignment "$output_dir/temp/${reference_name}_soft_clipped.fasta" "$reference_genome" "$output_dir" "$reference_name" "_second"
+    fi
 
     # Third run of the process using soft-clipped sequences from the second run
-    process_alignment "$output_dir/temp/${reference_name}_soft_clipped_second.fasta" "$reference_genome" "$output_dir" "$reference_name" "_third"
+    if [ -e "$output_dir/temp/${reference_name}_soft_clipped_second.fasta" ]; then
+      process_alignment "$output_dir/temp/${reference_name}_soft_clipped_second.fasta" "$reference_genome" "$output_dir" "$reference_name" "_third"
+    fi
 
     # Combine the final SAM files
-    # Write header from the first SAM file to the combined SAM file
-    grep "^@" "$output_dir/sam/${reference_name}_filtered_minimap2_third.sam" > "$output_dir/sam/${reference_name}_combined.sam"
-    # Append the alignment records from the first, second, and third runs to the combined SAM file
+    grep "^@" "$output_dir/sam/${reference_name}_filtered_minimap2.sam" > "$output_dir/sam/${reference_name}_combined.sam"
     grep -v "^@" "$output_dir/sam/${reference_name}_filtered_minimap2.sam" >> "$output_dir/sam/${reference_name}_combined.sam"
-    grep -v "^@" "$output_dir/sam/${reference_name}_filtered_minimap2_second.sam" >> "$output_dir/sam/${reference_name}_combined.sam"
-    grep -v "^@" "$output_dir/sam/${reference_name}_filtered_minimap2_third.sam" >> "$output_dir/sam/${reference_name}_combined.sam"
+    if [ -e "$output_dir/sam/${reference_name}_filtered_minimap2_second.sam" ]; then
+        grep -v "^@" "$output_dir/sam/${reference_name}_filtered_minimap2_second.sam" >> "$output_dir/sam/${reference_name}_combined.sam"
+        if [ -e "$output_dir/sam/${reference_name}_filtered_minimap2_third.sam" ]; then
+            grep -v "^@" "$output_dir/sam/${reference_name}_filtered_minimap2_third.sam" >> "$output_dir/sam/${reference_name}_combined.sam"
+        fi
+    fi
   fi
 done

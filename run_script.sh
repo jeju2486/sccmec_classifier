@@ -1,29 +1,25 @@
 #!/bin/bash
 
-#SBATCH --job-name=test_run
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=1
-#SBATCH --partition=devel
-#SBATCH --time=0-00:03:00
-#SBATCH --error=/data/biol-micro-genomics/kell7366/sccmec_classifier/test_error.txt
-#SBATCH --output=/data/biol-micro-genomics/kell7366/sccmec_classifier/test_output.txt
+# Function to display usage message
+usage() {
+  echo "Usage: $0 -q <query_sequence> -r <reference_dir> -o <output_dir> [-s TRUE|FALSE]"
+  exit 1
+}
 
-#python code load
-module purge
-module load Anaconda3/2023.09-0
-source activate $DATA/sccmec_classifier_env
+# Parse command-line arguments
+save_temp="TRUE"
+while getopts q:r:o:s: flag
+do
+    case "${flag}" in
+        q) query_sequence=${OPTARG};;
+        r) reference_dir=${OPTARG};;
+        o) output_dir=${OPTARG};;
+        s) save_temp=${OPTARG};;
+        \?) usage;;
+    esac
+done
 
-# Set the path to your query sequence
-query_sequence="/data/biol-micro-genomics/kell7366/sccmec_classifier/gene_db.fasta"
-
-# Set the directory containing reference sequences and flanking length
-reference_dir="/data/biol-micro-genomics/kell7366/sccmec_classifier/Assemblies/"
-
-# Create a directory to store the files
-output_dir="/data/biol-micro-genomics/kell7366/sccmec_classifier"
-
-bash run_distinguish_type.sh -q "$query_sequence" -r "$reference_dir" -o "$output_dir"
+bash run_distinguish_type.sh -q "$query_sequence" -r "$reference_dir" -o "$output_dir" -s "$save_temp"
 
 echo "process stat file..."
 
