@@ -21,13 +21,12 @@ def check_conda():
 
 def create_environment(env_file):
     """Create a Conda environment from an environment.yml file."""
-    run_command(f"conda env create -f {env_file}")
+    run_command(f"conda env create -f {env_file} -n sccmec_classifier_env" )
 
 if __name__ == "__main__":
     check_conda()
-    env_file = "environment.yml"
+    env_file = "envirnment.yml"
     if os.path.exists(env_file):
         create_environment(env_file)
     else:
         print(f"{env_file} not found. Please provide the correct path to the environment.yml file.")
-

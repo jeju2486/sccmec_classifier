@@ -19,7 +19,7 @@ do
     esac
 done
 
-conda activate ./sccmec_classifier_env
+conda activate sccmec_classifier_env
 
 bash run_distinguish_type.sh -q "$query_sequence" -r "$reference_dir" -o "$output_dir" -s "$save_temp"
 
