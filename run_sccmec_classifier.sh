@@ -11,6 +11,9 @@ output_dir="/data/biol-micro-genomics/kell7366/sccmec_classifier"
 
 save_temp="TRUE"
 
+module purge
+module load Anaconda3/2023.09-0
+
 python setup.py
 
 bash run_script.sh -q "$query_sequence" -r "$reference_dir" -o "$output_dir" -s "$save_temp"
