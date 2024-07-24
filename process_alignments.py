@@ -46,7 +46,7 @@ def collect_gene_stats(sam_dir):
     gene_stats = {}
     for filename in os.listdir(sam_dir):
         if filename.endswith('_combined.sam'):
-            sample_id = filename.split('_')[0]
+            sample_id = filename.split('.')[0]
             file_path = os.path.join(sam_dir, filename)
             matches = parse_sam(file_path)
             gene_stats[sample_id] = matches

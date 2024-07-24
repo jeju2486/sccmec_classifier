@@ -112,7 +112,11 @@ process_alignment() {
 }
 
 # Iterate through files in the reference directory
-for reference_genome in "$reference_dir"/*.fasta; do
+for reference_genome in "$reference_dir"/*.{fasta,fas,fna}; do
+  if [ ! -e "$reference_genome" ];then
+    echo "Warning: file extension is not correct checking other option..."
+    continue
+  fi      
   reference_name=$(basename "$reference_genome" | cut -d '.' -f 1)
   if [ -e "$output_dir/sam/${reference_name}_minimap2.sam" ]; then
     echo "File $reference_name already exists. Skipping."

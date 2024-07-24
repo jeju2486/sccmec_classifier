@@ -24,7 +24,7 @@ def get_best_class(row, mec_contigs, mec='no_sccmec'):
         'IS431-dmecR1_classC2_typeV_match_ratio',
         'IS1272-dmecR1_classB_typeVI_match_ratio',
         'IS431-dmecR1_classC1_typeVII_match_ratio',
-        'IS431-dmecR1-classC2_typeIX_match_ratio',
+        'IS431-dmecR1_classC2_typeIX_match_ratio',
         'IS431-dmecR1_classC1_typeX_match_ratio',
         'blaZ-mecA-mecR1-mecI_classE_typeXI_match_ratio',
         'IS431-dmecR1_classC2_typeXII_match_ratio',
