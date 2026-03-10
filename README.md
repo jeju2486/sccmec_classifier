@@ -2,19 +2,6 @@
 
 Automated **SCCmec** typing for *Staphylococcus* assemblies
 
-<!-- badges are welcome here -->
-
----
-
-## Why SCCmecClassifier?
-
-* **Fast.** Uses `minimap2` for rapid alignments.
-* **Accurate.** Post‑processing filters correct most edge‑cases caused by split contigs and duplicated hits.
-* **Reproducible.** Single command, deterministic outputs.
-* **Extensible.** Drop‑in databases make adding new mec/ccr variants trivial.
-
-> **Note** The workflow is currently tested on Linux. macOS should work with minimal tweaks; Windows support is not planned.
-
 ---
 
 ## Installation
